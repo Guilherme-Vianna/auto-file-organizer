@@ -2,11 +2,11 @@
 
 Você pode ver o plugin em ação neste vídeo:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/H6mfIhTJe_c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[Clique Aqui](https://www.youtube.com/embed/H6mfIhTJe_c)
 
 ## Suporte e Contribuição
 
-Se você tiver algum problema ou sugestão, sinta-se à vontade para abrir uma [Issue](https://github.com/SEU_NOME_DE_USUARIO/SEU_REPOSITORIO_DO_PLUGIN/issues) neste repositório.
+Se você tiver algum problema ou sugestão, sinta-se à vontade para abrir uma [Issue](https://github.com/Guilherme-Viana/auto-file-organizer/issues) neste repositório.
 
 Contribuições são bem-vindas! Se você quiser ajudar a melhorar este plugin, você pode:
 
