@@ -1,7 +1,48 @@
-import { Plugin, Notice, TFile, TFolder } from "obsidian";
+import { Plugin, Notice, TFile, TFolder, PluginSettingTab, Setting, App } from "obsidian";
+
+interface GeminiFileOrganizerSettings {
+  geminiApiKey: string;
+}
+
+const DEFAULT_SETTINGS: GeminiFileOrganizerSettings = {
+  geminiApiKey: "",
+};
+
+class GeminiFileOrganizerSettingTab extends PluginSettingTab {
+  plugin: GeminiFileOrganizer;
+
+  constructor(app: App, plugin: GeminiFileOrganizer) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  display(): void {
+    const { containerEl } = this;
+
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("Chave da API do Gemini")
+      .setDesc("Insira sua chave de API do Gemini para usar o plugin.")
+      .addText((text) =>
+        text
+          .setPlaceholder("Sua chave de API")
+          .setValue(this.plugin.settings.geminiApiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.geminiApiKey = value;
+            await this.plugin.saveSettings();
+          })
+      );
+  }
+}
 
 export default class GeminiFileOrganizer extends Plugin {
+  settings!: GeminiFileOrganizerSettings;
+
   async onload() {
+    await this.loadSettings();
+    this.addSettingTab(new GeminiFileOrganizerSettingTab(this.app, this));
+
     new Notice("Plugin Gemini File Organizer carregado!");
 
     this.addRibbonIcon("folder-plus", "Organizar com Gemini", async () => {
@@ -17,9 +58,7 @@ export default class GeminiFileOrganizer extends Plugin {
 
       try {
         const response = await this.sendToGemini(filePaths);
-
         await this.organizeFiles(response);
-
         new Notice("Arquivos organizados com sucesso!");
       } catch (error) {
         console.error("Erro ao organizar os arquivos:", error);
@@ -34,6 +73,18 @@ export default class GeminiFileOrganizer extends Plugin {
     new Notice("Plugin Gemini File Organizer descarregado!");
   }
 
+  async loadSettings() {
+    this.settings = Object.assign(
+      {},
+      DEFAULT_SETTINGS,
+      await this.loadData()
+    );
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
   /**
    * Envia os caminhos dos arquivos para a API do Gemini e retorna a resposta.
    * @param filePaths Lista de caminhos dos arquivos.
@@ -42,7 +93,14 @@ export default class GeminiFileOrganizer extends Plugin {
   private async sendToGemini(filePaths: string[]): Promise<string> {
     const apiUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-    const apiKey = "AIzaSyDeoEv-URUOmfvHLyisZJr-XHE9RKM03n4"; // Substitua pela sua chave de API
+    const apiKey = this.settings?.geminiApiKey; // Usando optional chaining
+
+    if (!apiKey) {
+      new Notice(
+        "A chave da API do Gemini não foi configurada. Vá nas configurações do plugin."
+      );
+      throw new Error("Chave da API do Gemini não configurada.");
+    }
 
     // Estrutura do payload
     const payload = {
@@ -79,28 +137,34 @@ export default class GeminiFileOrganizer extends Plugin {
 
     const data = await response.json();
 
-    return data.candidates[0].content.parts[0].text;
+    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return data.candidates[0].content.parts[0].text;
+    } else {
+      throw new Error("Resposta da API do Gemini em formato inesperado.");
+    }
   }
-/**
- * Remove todas as pastas vazias do vault.
- */
-private async removeEmptyFolders() {
-  const allFolders = this.app.vault.getAllLoadedFiles().filter((file) => file instanceof TFolder) as TFolder[];
+  /**
+   * Remove todas as pastas vazias do vault.
+   */
+  private async removeEmptyFolders() {
+    const allFolders = this.app.vault
+      .getAllLoadedFiles()
+      .filter((file) => file instanceof TFolder) as TFolder[];
 
-  for (const folder of allFolders) {
-    const folderContents = folder.children;
+    for (const folder of allFolders) {
+      const folderContents = folder.children;
 
-    // Verifica se a pasta está vazia
-    if (folderContents.length === 0) {
-      try {
-        await this.app.vault.adapter.rmdir(folder.path, true); // Remove a pasta
-        console.log(`Pasta removida: ${folder.path}`);
-      } catch (error) {
-        console.error(`Erro ao remover a pasta ${folder.path}:`, error);
+      // Verifica se a pasta está vazia
+      if (folderContents.length === 0) {
+        try {
+          await this.app.vault.adapter.rmdir(folder.path, true); // Remove a pasta
+          console.log(`Pasta removida: ${folder.path}`);
+        } catch (error) {
+          console.error(`Erro ao remover a pasta ${folder.path}:`, error);
+        }
       }
     }
   }
-}
   /**
    * Processa a resposta da API e move os arquivos para as pastas correspondentes.
    * @param structure Estrutura no formato "pasta:arquivo,arquivo;pasta2:arquivo,arquivo".
@@ -111,7 +175,7 @@ private async removeEmptyFolders() {
     for (const folder of folders) {
       const [folderName, files] = folder.split(":");
       const fileList = files.split(",");
-  
+
       // Criar a pasta, se não existir
       const folderPath = `${folderName}/`;
       try {
@@ -122,15 +186,15 @@ private async removeEmptyFolders() {
         console.error(`Erro ao criar a pasta ${folderPath}:`, error);
         continue; // Pula para a próxima pasta se houver erro
       }
-  
+
       // Mover os arquivos para a pasta
       for (const fileName of fileList) {
         const sanitizedFileName = this.sanitizeFileName(fileName.trim()); // Limpa o nome do arquivo
         const file = this.findFileByName(sanitizedFileName);
-  
+
         if (file instanceof TFile) {
           const newPath = `${folderPath}${file.name}`;
-  
+
           try {
             await this.app.vault.rename(file, newPath);
             console.log(`Arquivo movido: ${file.path} -> ${newPath}`);
@@ -148,24 +212,22 @@ private async removeEmptyFolders() {
     await this.removeEmptyFolders();
   }
 
-  
   /**
- * Busca recursivamente por um arquivo no vault pelo nome.
- * @param fileName Nome do arquivo a ser encontrado.
- * @returns O arquivo encontrado ou null se não for encontrado.
- */
-private findFileByName(fileName: string): TFile | null {
-  const allFiles = this.app.vault.getFiles(); // Obtém todos os arquivos do vault
+   * Busca recursivamente por um arquivo no vault pelo nome.
+   * @param fileName Nome do arquivo a ser encontrado.
+   * @returns O arquivo encontrado ou null se não for encontrado.
+   */
+  private findFileByName(fileName: string): TFile | null {
+    const allFiles = this.app.vault.getFiles(); // Obtém todos os arquivos do vault
 
-  for (const file of allFiles) {
-    if (file.name === fileName) {
-      return file; // Retorna o arquivo se o nome corresponder
+    for (const file of allFiles) {
+      if (file.name === fileName) {
+        return file; // Retorna o arquivo se o nome corresponder
+      }
     }
-  }
 
-  return null; // Retorna null se o arquivo não for encontrado
-}
-  
+    return null; // Retorna null se o arquivo não for encontrado
+  }
 
   /**
    * Remove caracteres inválidos do nome do arquivo.

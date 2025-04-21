@@ -1,12 +1,13 @@
 {
-  "id": "gemini-file-organizer",
-  "name": "Gemini File Organizer",
+  "id": "auto-file-organizer",
+  "name": "Auto File Organizer",
   "version": "0.0.1",
-  "minAppVersion": "0.15.0",
   "description": "Organize seus arquivos do Obsidian usando a inteligência do Gemini.",
-  "author": "Seu Nome",
-  "authorUrl": "https://seu-site.com",
-  "fundingUrl": "https://sua-pagina-de-doacao.com",
-  "website": "https://seu-repositorio-github.com",
-  "isDesktopOnly": false
+  "author": "Guilherme Vianna",
+  "authorUrl": "https://github.com/Guilherme-Vianna",
+  "website": "https://github.com/Guilherme-Vianna",
+  "isDesktopOnly": false,
+  "settings": {
+    "geminiApiKey": ""
+  }
 }
