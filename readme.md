@@ -2,9 +2,7 @@
 
 Você pode ver o plugin em ação neste vídeo:
 
-```html
-<iframe width="560" height="315" src="https://youtu.be/H6mfIhTJe_c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
+<iframe width="560" height="315" src="https://www.youtube.com/embed/H6mfIhTJe_c" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## Suporte e Contribuição
 
